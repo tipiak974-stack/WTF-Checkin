@@ -1,19 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getEvent, updateEvent, uploadEventLogo } from '../lib/events'
 import { addParticipant, deleteParticipant, listParticipants, subscribeToParticipants } from '../lib/participants'
-import { countByStatus, buildArrivalCurve } from '../lib/stats'
-import { participantsToCsv, downloadCsv } from '../lib/csvExport'
-import { normalize } from '../lib/strings'
 import { CsvImport } from '../components/CsvImport'
 import { EventLogo } from '../components/EventLogo'
 import { ParticipantForm } from '../components/ParticipantForm'
 import { StatusBadge } from '../components/StatusBadge'
 import { SizeBadge } from '../components/SizeBadge'
-import { StatTile } from '../components/StatTile'
-import { StatusBarChart } from '../components/StatusBarChart'
-import { ArrivalChart } from '../components/ArrivalChart'
 import type { EventRecord, Participant } from '../types'
+
+const DashboardTab = lazy(() => import('../components/DashboardTab'))
 
 type Tab = 'config' | 'participants' | 'dashboard'
 
@@ -35,7 +31,6 @@ export function EventConfigPage() {
   const [loading, setLoading] = useState(true)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [dashboardQuery, setDashboardQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const refreshParticipants = useCallback(() => {
@@ -92,35 +87,6 @@ export function EventConfigPage() {
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     }
   }
-
-  function handleExportCsv() {
-    if (!event) return
-    downloadCsv(`${event.name || 'evenement'}-participants.csv`, participantsToCsv(participants))
-  }
-
-  async function handleExportPdf() {
-    if (!event) return
-    const { downloadReportPdf } = await import('../lib/pdfExport')
-    downloadReportPdf(event, participants)
-  }
-
-  async function handleExportXls() {
-    if (!event) return
-    const { downloadParticipantsXls } = await import('../lib/xlsExport')
-    downloadParticipantsXls(`${event.name || 'evenement'}-participants.xlsx`, participants)
-  }
-
-  const statusCounts = useMemo(() => countByStatus(participants), [participants])
-  const arrivalCurve = useMemo(() => buildArrivalCurve(participants), [participants])
-  const checkedInCount = participants.filter((p) => p.checked_in).length
-  const totalCount = participants.length
-  const rate = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0
-
-  const dashboardResults = useMemo(() => {
-    const q = normalize(dashboardQuery)
-    if (q.length < 3) return []
-    return participants.filter((p) => normalize(p.last_name).includes(q))
-  }, [participants, dashboardQuery])
 
   if (loading) {
     return (
@@ -270,99 +236,9 @@ export function EventConfigPage() {
           )}
 
           {tab === 'dashboard' && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border-2 border-line bg-surface p-4">
-                <h2 className="font-display text-xl text-brand-600">Rechercher un participant</h2>
-                <input
-                  value={dashboardQuery}
-                  onChange={(e) => setDashboardQuery(e.target.value)}
-                  placeholder="Nom de famille (3 caractères min)"
-                  className="mt-3 w-full rounded-xl border-2 border-line bg-paper px-4 py-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none"
-                />
-                {dashboardQuery.trim().length >= 3 && (
-                  <ul className="mt-3 space-y-2">
-                    {dashboardResults.length === 0 ? (
-                      <p className="text-sm text-ink-600">Aucun participant trouvé.</p>
-                    ) : (
-                      dashboardResults.map((p) => (
-                        <li
-                          key={p.id}
-                          className="flex flex-wrap items-center gap-2 rounded-xl border-2 border-line p-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-ink-900">
-                              {p.first_name} {p.last_name}
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              <StatusBadge status={p.status} />
-                              <SizeBadge size={p.tshirt_size} />
-                            </div>
-                          </div>
-                          <span
-                            className={`text-sm font-semibold ${p.checked_in ? 'text-brand-600' : 'text-ink-400'}`}
-                          >
-                            {p.checked_in && p.checked_in_at
-                              ? new Date(p.checked_in_at).toLocaleTimeString('fr-FR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                              : 'Non pointé'}
-                          </span>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <StatTile label="Présents" value={checkedInCount} accent />
-                <StatTile label="Inscrits" value={totalCount} />
-                <StatTile label="Taux de présence" value={`${rate}%`} accent />
-                <StatTile label="Absents" value={totalCount - checkedInCount} />
-              </div>
-
-              <div className="rounded-2xl border-2 border-line bg-surface p-4">
-                <h2 className="font-display text-xl text-brand-600">Répartition par statut</h2>
-                <div className="mt-4">
-                  <StatusBarChart counts={statusCounts} />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border-2 border-line bg-surface p-4">
-                <h2 className="font-display text-xl text-brand-600">Suivi des arrivées</h2>
-                <div className="mt-4">
-                  <ArrivalChart points={arrivalCurve} />
-                </div>
-              </div>
-
-              <div>
-                <h2 className="font-display text-xl text-brand-600">Télécharger le rapport</h2>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <button
-                    onClick={handleExportCsv}
-                    disabled={participants.length === 0}
-                    className="rounded-xl border-2 border-line bg-surface px-3 py-3 text-sm font-semibold text-ink-900 hover:bg-paper disabled:opacity-50"
-                  >
-                    CSV
-                  </button>
-                  <button
-                    onClick={handleExportPdf}
-                    disabled={participants.length === 0}
-                    className="rounded-xl bg-brand-600 px-3 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    PDF
-                  </button>
-                  <button
-                    onClick={handleExportXls}
-                    disabled={participants.length === 0}
-                    className="rounded-xl border-2 border-line bg-surface px-3 py-3 text-sm font-semibold text-ink-900 hover:bg-paper disabled:opacity-50"
-                  >
-                    XLS
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={<p className="text-ink-600">Chargement du dashboard…</p>}>
+              <DashboardTab event={event} participants={participants} />
+            </Suspense>
           )}
         </div>
       </div>
