@@ -101,9 +101,9 @@ export default function DashboardTab({ event, participants }: { event: EventReco
         </div>
 
         <div className="rounded-2xl border-2 border-line bg-surface p-4">
-          <h2 className="font-display text-xl text-brand-600">Typologie d'invités</h2>
+          <h2 className="font-display text-xl text-brand-600">Taux de présence</h2>
           <div className="mt-3">
-            <GuestDonutChart counts={statusCounts} />
+            <GuestDonutChart present={checkedInCount} total={totalCount} />
           </div>
         </div>
       </div>

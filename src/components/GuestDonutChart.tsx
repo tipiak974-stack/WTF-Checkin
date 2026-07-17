@@ -1,59 +1,49 @@
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { STATUS_CYAN_RAMP } from '../lib/statusColors'
-import type { StatusCount } from '../lib/stats'
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
-export function GuestDonutChart({ counts }: { counts: StatusCount[] }) {
-  const total = counts.reduce((sum, c) => sum + c.count, 0)
-  const data = counts.filter((c) => c.count > 0)
-  const vipCount = counts.find((c) => c.status === 'VIP')?.count ?? 0
-  const staffCount = counts.find((c) => c.status === 'Staff')?.count ?? 0
+const PRESENT_COLOR = '#00A8E8'
+const ABSENT_COLOR = '#E0E0E0'
 
+export function GuestDonutChart({ present, total }: { present: number; total: number }) {
   if (total === 0) {
     return <p className="text-sm text-ink-600">Aucun participant pour l'instant.</p>
   }
 
+  const absent = total - present
+  const rate = Math.round((present / total) * 100)
+  const data = [
+    { name: 'Présents', value: present, color: PRESENT_COLOR },
+    { name: 'Absents', value: absent, color: ABSENT_COLOR },
+  ]
+
   return (
-    <div>
-      <div className="relative h-56 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="count"
-              nameKey="status"
-              innerRadius="60%"
-              outerRadius="85%"
-              paddingAngle={2}
-              stroke="#ffffff"
-              strokeWidth={2}
-            >
-              {data.map((entry) => (
-                <Cell key={entry.status} fill={STATUS_CYAN_RAMP[entry.status]} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{ borderRadius: 12, border: '2px solid #ece1d8' }}
-              formatter={(value, name) => [`${value} (${Math.round((Number(value) / total) * 100)}%)`, name]}
-            />
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              formatter={(value: string) => <span className="text-xs text-ink-700">{value}</span>}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-x-0 top-[40%] -translate-y-1/2 text-center">
-          <p className="text-3xl font-bold text-ink-900">{total}</p>
-          <p className="text-xs font-medium text-ink-600">invités</p>
-        </div>
-      </div>
-      <div className="mt-2 flex justify-center gap-4 text-sm">
-        <span className="font-semibold text-ink-900">
-          +{vipCount} <span className="font-normal text-ink-600">VIP</span>
-        </span>
-        <span className="font-semibold text-ink-900">
-          +{staffCount} <span className="font-normal text-ink-600">Staff</span>
-        </span>
+    <div className="relative h-56 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            innerRadius="65%"
+            outerRadius="90%"
+            stroke="#ffffff"
+            strokeWidth={2}
+            isAnimationActive={false}
+          >
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={{ borderRadius: 12, border: '2px solid #ece1d8' }}
+            formatter={(value, name) => [`${value} (${Math.round((Number(value) / total) * 100)}%)`, name]}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
+        <p className="text-3xl font-bold text-ink-900">
+          {present}/{total}
+        </p>
+        <p className="text-xs font-medium text-ink-600">{rate}% présence</p>
       </div>
     </div>
   )
