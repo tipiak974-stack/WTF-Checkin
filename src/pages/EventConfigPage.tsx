@@ -1,22 +1,41 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getEvent, updateEvent, uploadEventLogo } from '../lib/events'
-import { addParticipant, deleteParticipant, listParticipants } from '../lib/participants'
+import { addParticipant, deleteParticipant, listParticipants, subscribeToParticipants } from '../lib/participants'
+import { countByStatus, buildArrivalCurve } from '../lib/stats'
+import { participantsToCsv, downloadCsv } from '../lib/csvExport'
+import { normalize } from '../lib/strings'
 import { CsvImport } from '../components/CsvImport'
 import { EventLogo } from '../components/EventLogo'
 import { ParticipantForm } from '../components/ParticipantForm'
 import { StatusBadge } from '../components/StatusBadge'
 import { SizeBadge } from '../components/SizeBadge'
+import { StatTile } from '../components/StatTile'
+import { StatusBarChart } from '../components/StatusBarChart'
+import { ArrivalChart } from '../components/ArrivalChart'
 import type { EventRecord, Participant } from '../types'
+
+type Tab = 'config' | 'participants' | 'dashboard'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'config', label: 'Config' },
+  { id: 'participants', label: 'Participants' },
+  { id: 'dashboard', label: 'Dashboard' },
+]
 
 export function EventConfigPage() {
   const { eventId } = useParams<{ eventId: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const tab: Tab = TABS.some((t) => t.id === tabParam) ? (tabParam as Tab) : 'config'
+  const setTab = (next: Tab) => setSearchParams({ tab: next }, { replace: true })
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [name, setName] = useState('')
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [dashboardQuery, setDashboardQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const refreshParticipants = useCallback(() => {
@@ -35,6 +54,11 @@ export function EventConfigPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [eventId])
+
+  useEffect(() => {
+    if (!eventId) return
+    return subscribeToParticipants(eventId, refreshParticipants)
+  }, [eventId, refreshParticipants])
 
   async function handleNameBlur() {
     if (!eventId || !event || name.trim() === event.name || !name.trim()) return
@@ -69,116 +93,277 @@ export function EventConfigPage() {
     }
   }
 
+  function handleExportCsv() {
+    if (!event) return
+    downloadCsv(`${event.name || 'evenement'}-participants.csv`, participantsToCsv(participants))
+  }
+
+  async function handleExportPdf() {
+    if (!event) return
+    const { downloadReportPdf } = await import('../lib/pdfExport')
+    downloadReportPdf(event, participants)
+  }
+
+  async function handleExportXls() {
+    if (!event) return
+    const { downloadParticipantsXls } = await import('../lib/xlsExport')
+    downloadParticipantsXls(`${event.name || 'evenement'}-participants.xlsx`, participants)
+  }
+
+  const statusCounts = useMemo(() => countByStatus(participants), [participants])
+  const arrivalCurve = useMemo(() => buildArrivalCurve(participants), [participants])
+  const checkedInCount = participants.filter((p) => p.checked_in).length
+  const totalCount = participants.length
+  const rate = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0
+
+  const dashboardResults = useMemo(() => {
+    const q = normalize(dashboardQuery)
+    if (q.length < 3) return []
+    return participants.filter((p) => normalize(p.last_name).includes(q))
+  }, [participants, dashboardQuery])
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-950 px-4 py-8 text-neutral-100">
-        <p className="text-neutral-400">Chargement…</p>
+      <main className="min-h-screen bg-paper px-4 py-8">
+        <p className="text-ink-600">Chargement…</p>
       </main>
     )
   }
 
   if (!event || !eventId) {
     return (
-      <main className="min-h-screen bg-neutral-950 px-4 py-8 text-neutral-100">
-        <p className="text-red-400">Événement introuvable.</p>
+      <main className="min-h-screen bg-paper px-4 py-8">
+        <p className="text-brand-700">Événement introuvable.</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <Link to="/" className="text-sm text-neutral-400 hover:text-neutral-200">
-          ← Retour
-        </Link>
-
-        {error && <p className="mt-4 rounded-lg bg-red-950 px-3 py-2 text-sm text-red-300">{error}</p>}
-
-        <div className="mt-4 flex items-center gap-4">
-          <label className="cursor-pointer">
-            <EventLogo src={event.logo_url} alt={event.name} className="h-16 w-16 rounded-lg object-cover" />
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) handleLogoChange(file)
-              }}
-            />
-          </label>
-          <div className="flex-1">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={handleNameBlur}
-              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-xl font-semibold tracking-tight hover:border-neutral-800 focus:border-neutral-600 focus:bg-neutral-900 focus:outline-none"
-            />
-            <p className="px-2 text-xs text-neutral-500">
-              {uploadingLogo ? 'Envoi du logo…' : 'Clique sur le logo pour le changer'}
-            </p>
-          </div>
+    <main className="min-h-screen bg-paper">
+      <div className="mx-auto max-w-2xl px-4 py-6">
+        <div className="flex items-center justify-between">
+          <Link to="/" className="text-sm font-medium text-ink-600 hover:text-ink-900">
+            ← Retour
+          </Link>
           <Link
             to={`/events/${eventId}/pointage`}
-            className="rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-950 hover:bg-white"
+            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Pointage
           </Link>
         </div>
 
-        <div className="mt-8 space-y-6">
-          <CsvImport eventId={eventId} onImported={refreshParticipants} />
+        <div className="mt-4 flex items-center gap-3">
+          <EventLogo src={event.logo_url} alt={event.name} className="h-11 w-11 shrink-0 rounded-xl object-cover ring-1 ring-line" />
+          <h1 className="truncate font-display text-2xl text-brand-600">{event.name}</h1>
+        </div>
 
-          <div className="rounded-xl border border-neutral-800 p-4">
-            <h2 className="font-medium">Ajouter un participant</h2>
-            <div className="mt-3">
-              <ParticipantForm
-                submitLabel="Ajouter"
-                submitting={adding}
-                onSubmit={async (values) => {
-                  setAdding(true)
-                  try {
-                    const participant = await addParticipant(eventId, values)
-                    setParticipants((prev) => [...prev, participant].sort((a, b) => a.last_name.localeCompare(b.last_name)))
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Erreur inconnue')
-                  } finally {
-                    setAdding(false)
-                  }
-                }}
-              />
-            </div>
-          </div>
+        {error && (
+          <p className="mt-4 rounded-xl border-2 border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
+            {error}
+          </p>
+        )}
 
-          <div className="rounded-xl border border-neutral-800">
-            <div className="flex items-center justify-between border-b border-neutral-800 p-4">
-              <h2 className="font-medium">Participants</h2>
-              <span className="text-sm text-neutral-400">{participants.length}</span>
+        <div className="mt-6 flex gap-1 rounded-xl border-2 border-line bg-surface p-1">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                tab === t.id ? 'bg-brand-600 text-white' : 'text-ink-600 hover:bg-paper'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          {tab === 'config' && (
+            <div className="rounded-2xl border-2 border-line bg-surface p-4">
+              <h2 className="font-display text-xl text-brand-600">Nom et logo</h2>
+              <div className="mt-4 flex items-center gap-4">
+                <label className="cursor-pointer">
+                  <EventLogo src={event.logo_url} alt={event.name} className="h-16 w-16 rounded-xl object-cover ring-1 ring-line" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleLogoChange(file)
+                    }}
+                  />
+                </label>
+                <div className="min-w-0 flex-1">
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={handleNameBlur}
+                    className="w-full rounded-xl border-2 border-line bg-paper px-3 py-3 text-lg font-semibold text-ink-900 focus:border-brand-500 focus:outline-none"
+                  />
+                  <p className="mt-1 px-1 text-xs text-ink-400">
+                    {uploadingLogo ? 'Envoi du logo…' : 'Clique sur le logo pour le changer'}
+                  </p>
+                </div>
+              </div>
             </div>
-            {participants.length === 0 ? (
-              <p className="p-4 text-sm text-neutral-400">Aucun participant pour l'instant.</p>
-            ) : (
-              <ul className="divide-y divide-neutral-800">
-                {participants.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3 p-4">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {p.first_name} {p.last_name}
-                      </p>
-                    </div>
-                    <StatusBadge status={p.status} />
-                    <SizeBadge size={p.tshirt_size} />
-                    <button
-                      onClick={() => handleDelete(p.id)}
-                      className="rounded-lg px-2 py-1 text-sm text-red-400 hover:bg-red-950"
-                    >
-                      Supprimer
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          )}
+
+          {tab === 'participants' && (
+            <div className="space-y-6">
+              <CsvImport eventId={eventId} onImported={refreshParticipants} />
+
+              <div className="rounded-2xl border-2 border-line bg-surface p-4">
+                <h2 className="font-display text-xl text-brand-600">Ajouter un participant</h2>
+                <div className="mt-3">
+                  <ParticipantForm
+                    submitLabel="Ajouter"
+                    submitting={adding}
+                    onSubmit={async (values) => {
+                      setAdding(true)
+                      try {
+                        const participant = await addParticipant(eventId, values)
+                        setParticipants((prev) =>
+                          [...prev, participant].sort((a, b) => a.last_name.localeCompare(b.last_name)),
+                        )
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Erreur inconnue')
+                      } finally {
+                        setAdding(false)
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border-2 border-line bg-surface">
+                <div className="flex items-center justify-between border-b-2 border-line p-4">
+                  <h2 className="font-display text-xl text-brand-600">Participants</h2>
+                  <span className="text-sm font-semibold text-ink-600">{participants.length}</span>
+                </div>
+                {participants.length === 0 ? (
+                  <p className="p-4 text-sm text-ink-600">Aucun participant pour l'instant.</p>
+                ) : (
+                  <ul className="divide-y-2 divide-line">
+                    {participants.map((p) => (
+                      <li key={p.id} className="flex flex-wrap items-center gap-3 p-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-ink-900">
+                            {p.first_name} {p.last_name}
+                          </p>
+                        </div>
+                        <StatusBadge status={p.status} />
+                        <SizeBadge size={p.tshirt_size} />
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="rounded-lg px-2 py-1 text-sm font-medium text-brand-600 hover:bg-brand-50"
+                        >
+                          Supprimer
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === 'dashboard' && (
+            <div className="space-y-6">
+              <div className="rounded-2xl border-2 border-line bg-surface p-4">
+                <h2 className="font-display text-xl text-brand-600">Rechercher un participant</h2>
+                <input
+                  value={dashboardQuery}
+                  onChange={(e) => setDashboardQuery(e.target.value)}
+                  placeholder="Nom de famille (3 caractères min)"
+                  className="mt-3 w-full rounded-xl border-2 border-line bg-paper px-4 py-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none"
+                />
+                {dashboardQuery.trim().length >= 3 && (
+                  <ul className="mt-3 space-y-2">
+                    {dashboardResults.length === 0 ? (
+                      <p className="text-sm text-ink-600">Aucun participant trouvé.</p>
+                    ) : (
+                      dashboardResults.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex flex-wrap items-center gap-2 rounded-xl border-2 border-line p-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-ink-900">
+                              {p.first_name} {p.last_name}
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              <StatusBadge status={p.status} />
+                              <SizeBadge size={p.tshirt_size} />
+                            </div>
+                          </div>
+                          <span
+                            className={`text-sm font-semibold ${p.checked_in ? 'text-brand-600' : 'text-ink-400'}`}
+                          >
+                            {p.checked_in && p.checked_in_at
+                              ? new Date(p.checked_in_at).toLocaleTimeString('fr-FR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : 'Non pointé'}
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <StatTile label="Présents" value={checkedInCount} accent />
+                <StatTile label="Inscrits" value={totalCount} />
+                <StatTile label="Taux de présence" value={`${rate}%`} accent />
+                <StatTile label="Absents" value={totalCount - checkedInCount} />
+              </div>
+
+              <div className="rounded-2xl border-2 border-line bg-surface p-4">
+                <h2 className="font-display text-xl text-brand-600">Répartition par statut</h2>
+                <div className="mt-4">
+                  <StatusBarChart counts={statusCounts} />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border-2 border-line bg-surface p-4">
+                <h2 className="font-display text-xl text-brand-600">Suivi des arrivées</h2>
+                <div className="mt-4">
+                  <ArrivalChart points={arrivalCurve} />
+                </div>
+              </div>
+
+              <div>
+                <h2 className="font-display text-xl text-brand-600">Télécharger le rapport</h2>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <button
+                    onClick={handleExportCsv}
+                    disabled={participants.length === 0}
+                    className="rounded-xl border-2 border-line bg-surface px-3 py-3 text-sm font-semibold text-ink-900 hover:bg-paper disabled:opacity-50"
+                  >
+                    CSV
+                  </button>
+                  <button
+                    onClick={handleExportPdf}
+                    disabled={participants.length === 0}
+                    className="rounded-xl bg-brand-600 px-3 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={handleExportXls}
+                    disabled={participants.length === 0}
+                    className="rounded-xl border-2 border-line bg-surface px-3 py-3 text-sm font-semibold text-ink-900 hover:bg-paper disabled:opacity-50"
+                  >
+                    XLS
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>

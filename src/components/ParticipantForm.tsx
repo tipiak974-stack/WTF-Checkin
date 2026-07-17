@@ -8,6 +8,9 @@ export interface ParticipantFormValues {
   tshirt_size: string | null
 }
 
+const fieldClass =
+  'min-w-0 rounded-xl border-2 border-line bg-surface px-3 py-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none'
+
 export function ParticipantForm({
   onSubmit,
   submitLabel,
@@ -46,19 +49,19 @@ export function ParticipantForm({
         onChange={(e) => setFirstName(e.target.value)}
         placeholder="Prénom"
         required
-        className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none"
+        className={`flex-1 ${fieldClass}`}
       />
       <input
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
         placeholder="Nom"
         required
-        className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none"
+        className={`flex-1 ${fieldClass}`}
       />
       <select
         value={status}
         onChange={(e) => setStatus(e.target.value as ParticipantStatus)}
-        className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+        className={fieldClass}
       >
         {PARTICIPANT_STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -71,7 +74,7 @@ export function ParticipantForm({
         onChange={(e) => setSize(e.target.value)}
         list="tshirt-sizes"
         placeholder="Taille"
-        className="w-24 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none"
+        className={`w-24 ${fieldClass}`}
       />
       <datalist id="tshirt-sizes">
         <option value="XS" />
@@ -84,7 +87,7 @@ export function ParticipantForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-white disabled:opacity-50"
+        className="rounded-xl bg-brand-600 px-5 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
       >
         {submitLabel}
       </button>

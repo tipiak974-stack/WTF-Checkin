@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="12" fill="#404040" />
-  <text x="32" y="40" font-family="system-ui, sans-serif" font-size="26" font-weight="600" fill="#e5e5e5" text-anchor="middle">?</text>
+  <rect width="64" height="64" rx="14" fill="#e2445c" />
+  <path
+    d="M16 24c0-2.2 1.8-4 4-4h24c2.2 0 4 1.8 4 4v2a4 4 0 0 0 0 8v2c0 2.2-1.8 4-4 4H20c-2.2 0-4-1.8-4-4v-2a4 4 0 0 0 0-8v-2z"
+    fill="#ffffff"
+  />
+  <circle cx="32" cy="32" r="3" fill="#e2445c" />
 </svg>

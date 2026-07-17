@@ -1,16 +1,14 @@
+import { STATUS_COLORS } from '../lib/statusColors'
 import type { ParticipantStatus } from '../types'
-
-const STYLES: Record<ParticipantStatus, string> = {
-  Participant: 'bg-slate-700 text-slate-100',
-  VIP: 'bg-amber-500 text-amber-950',
-  Encadrant: 'bg-blue-600 text-blue-50',
-  'Big Boss': 'bg-fuchsia-600 text-fuchsia-50',
-  Staff: 'bg-emerald-600 text-emerald-50',
-}
 
 export function StatusBadge({ status }: { status: ParticipantStatus }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STYLES[status]}`}>
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-700">
+      <span
+        className="h-2.5 w-2.5 shrink-0 rounded-full"
+        style={{ backgroundColor: STATUS_COLORS[status] }}
+        aria-hidden="true"
+      />
       {status}
     </span>
   )

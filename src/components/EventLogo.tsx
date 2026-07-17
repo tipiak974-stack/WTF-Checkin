@@ -10,7 +10,7 @@ export function EventLogo({ src, alt, className }: { src: string | null; alt: st
     <img
       src={resolvedSrc}
       alt={alt}
-      className={className ?? 'h-12 w-12 rounded-lg object-cover'}
+      className={className ?? 'h-12 w-12 rounded-xl object-cover ring-1 ring-line'}
       onError={() => setErrored(true)}
     />
   )

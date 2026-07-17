@@ -64,15 +64,20 @@ export async function deleteParticipant(participantId: string): Promise<void> {
 }
 
 export async function setCheckedIn(participantId: string, checkedIn: boolean): Promise<void> {
-  const { error } = await supabase
-    .from('participants')
-    .update({
-      checked_in: checkedIn,
-      checked_in_at: checkedIn ? new Date().toISOString() : null,
-    })
-    .eq('id', participantId)
+  const { data, error } = await supabase.functions.invoke<{ success?: boolean; error?: string }>(
+    'check-in-toggle',
+    { body: { participantId, action: checkedIn ? 'check' : 'uncheck' } },
+  )
 
-  if (error) throw error
+  if (error) {
+    const context = (error as { context?: Response }).context
+    const body = context && typeof context.json === 'function' ? await context.json().catch(() => null) : null
+    throw new Error(body?.error ?? error.message)
+  }
+
+  if (data?.error) {
+    throw new Error(data.error)
+  }
 }
 
 export function subscribeToParticipants(eventId: string, onChange: () => void) {
