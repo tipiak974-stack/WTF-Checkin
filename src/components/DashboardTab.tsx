@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { countByStatus, buildArrivalCurve } from '../lib/stats'
 import { participantsToCsv, downloadCsv } from '../lib/csvExport'
 import { normalize } from '../lib/strings'
@@ -12,6 +12,8 @@ import type { EventRecord, Participant } from '../types'
 
 export default function DashboardTab({ event, participants }: { event: EventRecord; participants: Participant[] }) {
   const [query, setQuery] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const reportRef = useRef<HTMLDivElement>(null)
 
   const statusCounts = useMemo(() => countByStatus(participants), [participants])
   const arrivalCurve = useMemo(() => buildArrivalCurve(participants), [participants])
@@ -30,8 +32,14 @@ export default function DashboardTab({ event, participants }: { event: EventReco
   }
 
   async function handleExportPdf() {
-    const { downloadReportPdf } = await import('../lib/pdfExport')
-    downloadReportPdf(event, participants)
+    if (!reportRef.current) return
+    setExportingPdf(true)
+    try {
+      const { downloadReportPdf } = await import('../lib/pdfExport')
+      await downloadReportPdf(reportRef.current, event, participants)
+    } finally {
+      setExportingPdf(false)
+    }
   }
 
   async function handleExportXls() {
@@ -42,7 +50,7 @@ export default function DashboardTab({ event, participants }: { event: EventReco
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border-2 border-line bg-surface p-4">
-        <h2 className="font-display text-xl text-brand-600">Rechercher un participant</h2>
+        <h2 className="font-sans text-xl text-brand-600">Rechercher un participant</h2>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -77,53 +85,55 @@ export default function DashboardTab({ event, participants }: { event: EventReco
         )}
       </div>
 
-      <div className="rounded-2xl bg-[#5B4B7F] p-6 text-center">
-        <h2 className="font-display text-2xl text-white sm:text-3xl">REPORTING DES ARRIVÉES</h2>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border-2 border-line bg-surface p-4">
-          <h2 className="font-display text-xl text-brand-600">Points de contrôle</h2>
-          <ul className="mt-3 space-y-2">
-            {statusCounts.map(({ status, count }) => (
-              <li
-                key={status}
-                className="flex items-center justify-between rounded-xl border-2 border-line px-3 py-2.5"
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[status] }} />
-                  {status}
-                </span>
-                <span className="text-sm font-bold text-ink-900">{count}</span>
-              </li>
-            ))}
-          </ul>
+      <div ref={reportRef} className="space-y-6 bg-paper">
+        <div className="rounded-2xl bg-[#5B4B7F] p-6 text-center">
+          <h2 className="font-sans text-2xl text-white sm:text-3xl">REPORTING DES ARRIVÉES</h2>
         </div>
 
-        <div className="rounded-2xl border-2 border-line bg-surface p-4">
-          <h2 className="font-display text-xl text-brand-600">Taux de présence</h2>
-          <div className="mt-3">
-            <GuestDonutChart present={checkedInCount} total={totalCount} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border-2 border-line bg-surface p-4">
+            <h2 className="font-sans text-xl text-brand-600">Points de contrôle</h2>
+            <ul className="mt-3 space-y-2">
+              {statusCounts.map(({ status, count }) => (
+                <li
+                  key={status}
+                  className="flex items-center justify-between rounded-xl border-2 border-line px-3 py-2.5"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[status] }} />
+                    {status}
+                  </span>
+                  <span className="text-sm font-bold text-ink-900">{count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-2xl border-2 border-line bg-surface p-4">
+            <h2 className="font-sans text-xl text-brand-600">Taux de présence</h2>
+            <div className="mt-3">
+              <GuestDonutChart present={checkedInCount} total={totalCount} />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="rounded-2xl border-2 border-line bg-surface p-4">
-        <h2 className="font-display text-xl text-brand-600">Suivi des arrivées</h2>
-        <div className="mt-4">
-          <ArrivalLineChart points={arrivalCurve} />
+        <div className="rounded-2xl border-2 border-line bg-surface p-4">
+          <h2 className="font-sans text-xl text-brand-600">Suivi des arrivées</h2>
+          <div className="mt-4">
+            <ArrivalLineChart points={arrivalCurve} />
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatTile label="Présents" value={checkedInCount} accent />
-        <StatTile label="Inscrits" value={totalCount} />
-        <StatTile label="Taux de présence" value={`${rate}%`} accent />
-        <StatTile label="Absents" value={totalCount - checkedInCount} />
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile label="Présents" value={checkedInCount} accent />
+          <StatTile label="Inscrits" value={totalCount} />
+          <StatTile label="Taux de présence" value={`${rate}%`} accent />
+          <StatTile label="Absents" value={totalCount - checkedInCount} />
+        </div>
       </div>
 
       <div>
-        <h2 className="font-display text-xl text-brand-600">Télécharger le rapport</h2>
+        <h2 className="font-sans text-xl text-brand-600">Télécharger le rapport</h2>
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button
             onClick={handleExportCsv}
@@ -134,10 +144,10 @@ export default function DashboardTab({ event, participants }: { event: EventReco
           </button>
           <button
             onClick={handleExportPdf}
-            disabled={participants.length === 0}
+            disabled={participants.length === 0 || exportingPdf}
             className="rounded-xl bg-brand-600 px-3 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            PDF
+            {exportingPdf ? '…' : 'PDF'}
           </button>
           <button
             onClick={handleExportXls}

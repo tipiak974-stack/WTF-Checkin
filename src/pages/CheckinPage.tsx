@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getEvent } from '../lib/events'
 import { addParticipant, listParticipants, setCheckedIn, subscribeToParticipants } from '../lib/participants'
@@ -25,6 +25,7 @@ export function CheckinPage() {
   const [addingGuest, setAddingGuest] = useState(false)
   const [confirmUncheck, setConfirmUncheck] = useState<Participant | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!eventId) return
@@ -110,12 +111,28 @@ export function CheckinPage() {
           </button>
         </div>
 
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher par nom (3 caractères min)"
-          className="mt-3 w-full rounded-xl border-2 border-line bg-surface px-4 py-3.5 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none"
-        />
+        <div className="relative mt-3">
+          <input
+            ref={searchInputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher par nom (3 caractères min)"
+            className="w-full rounded-xl border-2 border-line bg-surface px-4 py-3.5 pr-11 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('')
+                searchInputRef.current?.focus()
+              }}
+              aria-label="Effacer la recherche"
+              className="absolute inset-y-0 right-2 flex items-center px-2 text-ink-400 hover:text-ink-700"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-4 py-4">
@@ -174,7 +191,7 @@ export function CheckinPage() {
         <div className="fixed inset-0 z-20 flex items-end justify-center bg-ink-900/50 sm:items-center">
           <div className="w-full max-w-md rounded-t-2xl bg-surface p-4 sm:rounded-2xl">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl text-brand-600">Ajouter un invité</h2>
+              <h2 className="font-sans text-xl text-brand-600">Ajouter un invité</h2>
               <button onClick={() => setShowGuestForm(false)} className="text-ink-400 hover:text-ink-900">
                 ✕
               </button>
@@ -208,7 +225,7 @@ export function CheckinPage() {
       {confirmUncheck && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-ink-900/50 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-surface p-4">
-            <h2 className="font-display text-xl text-brand-600">Annuler le check-in ?</h2>
+            <h2 className="font-sans text-xl text-brand-600">Annuler le check-in ?</h2>
             <p className="mt-2 text-sm text-ink-700">
               Annuler le check-in pour <strong>{confirmUncheck.first_name} {confirmUncheck.last_name}</strong> ?
             </p>

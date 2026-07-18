@@ -34,7 +34,7 @@ export function CsvImport({ eventId, onImported }: { eventId: string; onImported
 
   return (
     <div className="rounded-2xl border-2 border-line bg-surface p-4">
-      <h2 className="font-display text-xl text-brand-600">Import CSV</h2>
+      <h2 className="font-sans text-xl text-brand-600">Import CSV</h2>
       <p className="mt-1 text-sm text-ink-600">Colonnes : prénom;nom;statut;taille (statut/taille optionnels)</p>
 
       <textarea

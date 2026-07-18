@@ -121,7 +121,7 @@ export function EventConfigPage() {
 
         <div className="mt-4 flex items-center gap-3">
           <EventLogo src={event.logo_url} alt={event.name} className="h-11 w-11 shrink-0 rounded-xl object-cover ring-1 ring-line" />
-          <h1 className="truncate font-display text-2xl text-brand-600">{event.name}</h1>
+          <h1 className="truncate font-sans text-2xl text-brand-600">{event.name}</h1>
         </div>
 
         {error && (
@@ -147,7 +147,7 @@ export function EventConfigPage() {
         <div className="mt-6">
           {tab === 'config' && (
             <div className="rounded-2xl border-2 border-line bg-surface p-4">
-              <h2 className="font-display text-xl text-brand-600">Nom et logo</h2>
+              <h2 className="font-sans text-xl text-brand-600">Nom et logo</h2>
               <div className="mt-4 flex items-center gap-4">
                 <label className="cursor-pointer">
                   <EventLogo src={event.logo_url} alt={event.name} className="h-16 w-16 rounded-xl object-cover ring-1 ring-line" />
@@ -181,7 +181,7 @@ export function EventConfigPage() {
               <CsvImport eventId={eventId} onImported={refreshParticipants} />
 
               <div className="rounded-2xl border-2 border-line bg-surface p-4">
-                <h2 className="font-display text-xl text-brand-600">Ajouter un participant</h2>
+                <h2 className="font-sans text-xl text-brand-600">Ajouter un participant</h2>
                 <div className="mt-3">
                   <ParticipantForm
                     submitLabel="Ajouter"
@@ -205,7 +205,7 @@ export function EventConfigPage() {
 
               <div className="rounded-2xl border-2 border-line bg-surface">
                 <div className="flex items-center justify-between border-b-2 border-line p-4">
-                  <h2 className="font-display text-xl text-brand-600">Participants</h2>
+                  <h2 className="font-sans text-xl text-brand-600">Participants</h2>
                   <span className="text-sm font-semibold text-ink-600">{participants.length}</span>
                 </div>
                 {participants.length === 0 ? (

@@ -34,7 +34,7 @@ export function HomePage() {
     <main className="min-h-screen bg-paper">
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="font-display text-4xl text-brand-600">WTF! Check-in</h1>
+          <h1 className="font-sans text-4xl text-brand-600">WTF! Check-in</h1>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
