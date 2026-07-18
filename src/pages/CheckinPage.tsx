@@ -181,18 +181,18 @@ export function CheckinPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 border-t-2 border-line bg-surface p-4">
-        <div className="flex gap-2">
-          <button
-            onClick={resetSearch}
-            className="shrink-0 rounded-xl border-2 border-line bg-paper px-4 py-4 text-sm font-semibold text-ink-600 hover:bg-line/40"
-          >
-            Suivant
-          </button>
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setShowGuestForm(true)}
-            className="flex-1 rounded-xl bg-brand-600 py-4 text-base font-semibold text-white hover:bg-brand-700"
+            className="rounded-xl border border-line bg-[#F5F5F5] py-4 text-sm font-semibold text-ink-700 hover:bg-line/40"
           >
             +1 / Ajouter un invité
+          </button>
+          <button
+            onClick={resetSearch}
+            className="rounded-xl bg-brand-600 py-4 text-base font-bold text-white hover:bg-brand-700"
+          >
+            Suivant
           </button>
         </div>
       </div>
