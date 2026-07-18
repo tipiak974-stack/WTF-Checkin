@@ -74,6 +74,11 @@ export function CheckinPage() {
     }
   }
 
+  function resetSearch() {
+    setQuery('')
+    searchInputRef.current?.focus()
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-paper px-4 py-8">
@@ -105,7 +110,7 @@ export function CheckinPage() {
           </div>
           <button
             onClick={() => navigate(`/events/${eventId}?tab=dashboard`)}
-            className="shrink-0 rounded-xl border-2 border-line bg-surface px-3 py-2 text-sm font-semibold text-ink-900 hover:border-brand-500"
+            className="shrink-0 rounded-xl border-2 border-line bg-surface px-3 py-2.5 text-sm font-semibold text-ink-900 hover:border-brand-500"
           >
             📊 Dashboard live
           </button>
@@ -122,10 +127,7 @@ export function CheckinPage() {
           {query && (
             <button
               type="button"
-              onClick={() => {
-                setQuery('')
-                searchInputRef.current?.focus()
-              }}
+              onClick={resetSearch}
               aria-label="Effacer la recherche"
               className="absolute inset-y-0 right-2 flex items-center px-2 text-ink-400 hover:text-ink-700"
             >
@@ -158,7 +160,7 @@ export function CheckinPage() {
                     {p.first_name} {p.last_name}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    <StatusBadge status={p.status} />
+                    <StatusBadge status={p.status} categories={event.categories_list} />
                     <SizeBadge size={p.tshirt_size} />
                   </div>
                 </div>
@@ -179,12 +181,20 @@ export function CheckinPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 border-t-2 border-line bg-surface p-4">
-        <button
-          onClick={() => setShowGuestForm(true)}
-          className="w-full rounded-xl bg-brand-600 py-4 text-base font-semibold text-white hover:bg-brand-700"
-        >
-          +1 / Ajouter un invité
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={resetSearch}
+            className="shrink-0 rounded-xl border-2 border-line bg-paper px-4 py-4 text-sm font-semibold text-ink-600 hover:bg-line/40"
+          >
+            Suivant
+          </button>
+          <button
+            onClick={() => setShowGuestForm(true)}
+            className="flex-1 rounded-xl bg-brand-600 py-4 text-base font-semibold text-white hover:bg-brand-700"
+          >
+            +1 / Ajouter un invité
+          </button>
+        </div>
       </div>
 
       {showGuestForm && (
@@ -198,6 +208,7 @@ export function CheckinPage() {
             </div>
             <div className="mt-3">
               <ParticipantForm
+                categories={event.categories_list}
                 submitLabel="Ajouter et marquer présent"
                 submitting={addingGuest}
                 onSubmit={async (values) => {

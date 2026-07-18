@@ -27,6 +27,8 @@ export function EventConfigPage() {
   const setTab = (next: Tab) => setSearchParams({ tab: next }, { replace: true })
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [name, setName] = useState('')
+  const [categories, setCategories] = useState<string[]>([])
+  const [savingCategories, setSavingCategories] = useState(false)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -44,6 +46,7 @@ export function EventConfigPage() {
       .then(([eventData, participantsData]) => {
         setEvent(eventData)
         setName(eventData.name)
+        setCategories(eventData.categories_list)
         setParticipants(participantsData)
       })
       .catch((err) => setError(err.message))
@@ -76,6 +79,34 @@ export function EventConfigPage() {
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setUploadingLogo(false)
+    }
+  }
+
+  function handleCategoryChange(index: number, value: string) {
+    setCategories((prev) => prev.map((c, i) => (i === index ? value : c)))
+  }
+
+  function handleRemoveCategory(index: number) {
+    setCategories((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function handleAddCategory() {
+    setCategories((prev) => [...prev, ''])
+  }
+
+  async function handleSaveCategories() {
+    if (!eventId || !event) return
+    const cleaned = categories.map((c) => c.trim()).filter(Boolean)
+    if (cleaned.length === 0) return
+    setSavingCategories(true)
+    try {
+      await updateEvent(eventId, { categories_list: cleaned })
+      setEvent({ ...event, categories_list: cleaned })
+      setCategories(cleaned)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setSavingCategories(false)
     }
   }
 
@@ -135,7 +166,7 @@ export function EventConfigPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex-1 rounded-lg py-3 text-sm font-semibold transition-colors ${
                 tab === t.id ? 'bg-brand-600 text-white' : 'text-ink-600 hover:bg-paper'
               }`}
             >
@@ -173,17 +204,55 @@ export function EventConfigPage() {
                   </p>
                 </div>
               </div>
+
+              <div className="mt-6 border-t-2 border-line pt-6">
+                <h2 className="font-sans text-xl text-brand-600">Catégories</h2>
+                <div className="mt-3 space-y-2">
+                  {categories.map((cat, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        value={cat}
+                        onChange={(e) => handleCategoryChange(i, e.target.value)}
+                        className="min-w-0 flex-1 rounded-xl border-2 border-line bg-paper px-3 py-3 text-base text-ink-900 focus:border-brand-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => handleRemoveCategory(i)}
+                        aria-label="Supprimer la catégorie"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-line text-ink-600 hover:bg-brand-50 hover:text-brand-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <button
+                    onClick={handleAddCategory}
+                    className="rounded-xl border-2 border-line px-4 py-3 text-sm font-semibold text-ink-900 hover:bg-paper"
+                  >
+                    + Ajouter une catégorie
+                  </button>
+                  <button
+                    onClick={handleSaveCategories}
+                    disabled={savingCategories}
+                    className="rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 sm:ml-auto"
+                  >
+                    {savingCategories ? 'Enregistrement…' : 'Enregistrer les catégories'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {tab === 'participants' && (
             <div className="space-y-6">
-              <CsvImport eventId={eventId} onImported={refreshParticipants} />
+              <CsvImport eventId={eventId} categories={event.categories_list} onImported={refreshParticipants} />
 
               <div className="rounded-2xl border-2 border-line bg-surface p-4">
                 <h2 className="font-sans text-xl text-brand-600">Ajouter un participant</h2>
                 <div className="mt-3">
                   <ParticipantForm
+                    categories={event.categories_list}
                     submitLabel="Ajouter"
                     submitting={adding}
                     onSubmit={async (values) => {
@@ -219,11 +288,11 @@ export function EventConfigPage() {
                             {p.first_name} {p.last_name}
                           </p>
                         </div>
-                        <StatusBadge status={p.status} />
+                        <StatusBadge status={p.status} categories={event.categories_list} />
                         <SizeBadge size={p.tshirt_size} />
                         <button
                           onClick={() => handleDelete(p.id)}
-                          className="rounded-lg px-2 py-1 text-sm font-medium text-brand-600 hover:bg-brand-50"
+                          className="rounded-lg px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
                         >
                           Supprimer
                         </button>

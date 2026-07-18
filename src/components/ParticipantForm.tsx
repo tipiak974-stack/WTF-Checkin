@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { PARTICIPANT_STATUSES, type ParticipantStatus } from '../types'
+import type { ParticipantStatus } from '../types'
 
 export interface ParticipantFormValues {
   first_name: string
@@ -9,20 +9,22 @@ export interface ParticipantFormValues {
 }
 
 const fieldClass =
-  'min-w-0 rounded-xl border-2 border-line bg-surface px-3 py-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none'
+  'min-w-0 w-full rounded-xl border-2 border-line bg-surface px-3 py-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none'
 
 export function ParticipantForm({
+  categories,
   onSubmit,
   submitLabel,
   submitting,
 }: {
+  categories: ParticipantStatus[]
   onSubmit: (values: ParticipantFormValues) => void | Promise<void>
   submitLabel: string
   submitting?: boolean
 }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [status, setStatus] = useState<ParticipantStatus>('Participant')
+  const [status, setStatus] = useState<ParticipantStatus>(categories[0] ?? 'Participant')
   const [size, setSize] = useState('')
 
   async function handleSubmit(e: FormEvent) {
@@ -38,32 +40,32 @@ export function ParticipantForm({
 
     setFirstName('')
     setLastName('')
-    setStatus('Participant')
+    setStatus(categories[0] ?? 'Participant')
     setSize('')
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
       <input
         value={firstName}
         onChange={(e) => setFirstName(e.target.value)}
         placeholder="Prénom"
         required
-        className={`flex-1 ${fieldClass}`}
+        className={`sm:flex-1 ${fieldClass}`}
       />
       <input
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
         placeholder="Nom"
         required
-        className={`flex-1 ${fieldClass}`}
+        className={`sm:flex-1 ${fieldClass}`}
       />
       <select
         value={status}
-        onChange={(e) => setStatus(e.target.value as ParticipantStatus)}
-        className={fieldClass}
+        onChange={(e) => setStatus(e.target.value)}
+        className={`sm:w-auto ${fieldClass}`}
       >
-        {PARTICIPANT_STATUSES.map((s) => (
+        {categories.map((s) => (
           <option key={s} value={s}>
             {s}
           </option>
@@ -74,7 +76,7 @@ export function ParticipantForm({
         onChange={(e) => setSize(e.target.value)}
         list="tshirt-sizes"
         placeholder="Taille"
-        className={`w-24 ${fieldClass}`}
+        className={`sm:w-24 ${fieldClass}`}
       />
       <datalist id="tshirt-sizes">
         <option value="XS" />
@@ -87,7 +89,7 @@ export function ParticipantForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-xl bg-brand-600 px-5 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+        className="w-full rounded-xl bg-brand-600 px-5 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50 sm:w-auto"
       >
         {submitLabel}
       </button>

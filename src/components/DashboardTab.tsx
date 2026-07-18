@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { countByStatus, buildArrivalCurve } from '../lib/stats'
 import { participantsToCsv, downloadCsv } from '../lib/csvExport'
 import { normalize } from '../lib/strings'
-import { STATUS_COLORS } from '../lib/statusColors'
+import { getCategoryColor } from '../lib/statusColors'
 import { StatusBadge } from './StatusBadge'
 import { SizeBadge } from './SizeBadge'
 import { StatTile } from './StatTile'
@@ -14,8 +14,9 @@ export default function DashboardTab({ event, participants }: { event: EventReco
   const [query, setQuery] = useState('')
   const [exportingPdf, setExportingPdf] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
+  const categories = event.categories_list
 
-  const statusCounts = useMemo(() => countByStatus(participants), [participants])
+  const statusCounts = useMemo(() => countByStatus(participants, categories), [participants, categories])
   const arrivalCurve = useMemo(() => buildArrivalCurve(participants), [participants])
   const checkedInCount = participants.filter((p) => p.checked_in).length
   const totalCount = participants.length
@@ -69,7 +70,7 @@ export default function DashboardTab({ event, participants }: { event: EventReco
                       {p.first_name} {p.last_name}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                      <StatusBadge status={p.status} />
+                      <StatusBadge status={p.status} categories={categories} />
                       <SizeBadge size={p.tshirt_size} />
                     </div>
                   </div>
@@ -90,31 +91,39 @@ export default function DashboardTab({ event, participants }: { event: EventReco
           <h2 className="font-sans text-2xl text-white sm:text-3xl">REPORTING DES ARRIVÉES</h2>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border-2 border-line bg-surface p-4">
-            <h2 className="font-sans text-xl text-brand-600">Points de contrôle</h2>
-            <ul className="mt-3 space-y-2">
-              {statusCounts.map(({ status, count }) => (
-                <li
-                  key={status}
-                  className="flex items-center justify-between rounded-xl border-2 border-line px-3 py-2.5"
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[status] }} />
-                    {status}
-                  </span>
-                  <span className="text-sm font-bold text-ink-900">{count}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatTile label="Présents" value={checkedInCount} accent />
+          <StatTile label="Inscrits" value={totalCount} />
+          <StatTile label="Taux de présence" value={`${rate}%`} accent />
+          <StatTile label="Absents" value={totalCount - checkedInCount} />
+        </div>
 
-          <div className="rounded-2xl border-2 border-line bg-surface p-4">
-            <h2 className="font-sans text-xl text-brand-600">Taux de présence</h2>
-            <div className="mt-3">
-              <GuestDonutChart present={checkedInCount} total={totalCount} />
-            </div>
+        <div className="rounded-2xl border-2 border-line bg-surface p-4">
+          <h2 className="font-sans text-xl text-brand-600">Taux de présence</h2>
+          <div className="mt-3">
+            <GuestDonutChart present={checkedInCount} total={totalCount} />
           </div>
+        </div>
+
+        <div className="rounded-2xl border-2 border-line bg-surface p-4">
+          <h2 className="font-sans text-xl text-brand-600">Points de contrôle</h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {statusCounts.map(({ status, count }) => (
+              <li
+                key={status}
+                className="flex items-center justify-between rounded-xl border-2 border-line px-3 py-2.5"
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: getCategoryColor(categories, status) }}
+                  />
+                  {status}
+                </span>
+                <span className="text-sm font-bold text-ink-900">{count}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="rounded-2xl border-2 border-line bg-surface p-4">
@@ -122,13 +131,6 @@ export default function DashboardTab({ event, participants }: { event: EventReco
           <div className="mt-4">
             <ArrivalLineChart points={arrivalCurve} />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <StatTile label="Présents" value={checkedInCount} accent />
-          <StatTile label="Inscrits" value={totalCount} />
-          <StatTile label="Taux de présence" value={`${rate}%`} accent />
-          <StatTile label="Absents" value={totalCount - checkedInCount} />
         </div>
       </div>
 

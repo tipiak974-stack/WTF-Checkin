@@ -1,13 +1,13 @@
-import { PARTICIPANT_STATUSES, type Participant, type ParticipantStatus } from '../types'
+import type { Participant, ParticipantStatus } from '../types'
 
 export interface StatusCount {
   status: ParticipantStatus
   count: number
 }
 
-/** Toujours dans l'ordre fixe de PARTICIPANT_STATUSES — préserve l'adjacence de couleur validée. */
-export function countByStatus(participants: Participant[]): StatusCount[] {
-  return PARTICIPANT_STATUSES.map((status) => ({
+/** Toujours dans l'ordre de `categories` — préserve l'adjacence de couleur validée. */
+export function countByStatus(participants: Participant[], categories: ParticipantStatus[]): StatusCount[] {
+  return categories.map((status) => ({
     status,
     count: participants.filter((p) => p.status === status).length,
   }))

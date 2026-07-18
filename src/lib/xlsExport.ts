@@ -5,7 +5,7 @@ export function downloadParticipantsXls(filename: string, participants: Particip
   const rows = participants.map((p) => ({
     Nom: p.last_name,
     Prénom: p.first_name,
-    Statut: p.status,
+    Catégorie: p.status,
     Taille: p.tshirt_size ?? '',
     Présent: p.checked_in ? 'Oui' : 'Non',
     'Heure de check-in': p.checked_in_at

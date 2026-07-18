@@ -1,17 +1,11 @@
-export type ParticipantStatus = 'Participant' | 'VIP' | 'Encadrant' | 'Big Boss' | 'Staff'
-
-export const PARTICIPANT_STATUSES: ParticipantStatus[] = [
-  'Participant',
-  'VIP',
-  'Encadrant',
-  'Big Boss',
-  'Staff',
-]
+export type ParticipantStatus = string
 
 export interface EventRecord {
   id: string
   name: string
   logo_url: string | null
+  categories_list: ParticipantStatus[]
+  archived: boolean
   created_at: string
 }
 

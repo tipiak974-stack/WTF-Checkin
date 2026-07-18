@@ -8,7 +8,7 @@ function escapeCell(value: string): string {
 }
 
 export function participantsToCsv(participants: Participant[]): string {
-  const header = ['Prénom', 'Nom', 'Statut', 'Taille', 'Invité', 'Présent', 'Horodatage'].join(';')
+  const header = ['Prénom', 'Nom', 'Catégorie', 'Taille', 'Invité', 'Présent', 'Horodatage'].join(';')
 
   const rows = participants.map((p) =>
     [

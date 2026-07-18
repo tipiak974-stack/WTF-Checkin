@@ -1,4 +1,4 @@
-import { PARTICIPANT_STATUSES, type ParticipantStatus } from '../types'
+import type { ParticipantStatus } from '../types'
 import { normalize } from './strings'
 
 export interface ParsedParticipantRow {
@@ -13,13 +13,6 @@ export interface CsvParseResult {
   errors: string[]
 }
 
-const STATUS_LOOKUP = new Map(PARTICIPANT_STATUSES.map((status) => [normalize(status), status]))
-
-function resolveStatus(raw: string): ParticipantStatus {
-  const match = STATUS_LOOKUP.get(normalize(raw))
-  return match ?? 'Participant'
-}
-
 function looksLikeHeader(cols: string[]): boolean {
   const first = normalize(cols[0] ?? '')
   return first === 'prenom' || first === 'prénom' || first === 'first_name' || first === 'firstname'
@@ -27,11 +20,15 @@ function looksLikeHeader(cols: string[]): boolean {
 
 /**
  * Colonnes attendues : prénom;nom;statut;taille (statut/taille optionnels).
- * Une ligne d'en-tête est détectée et ignorée automatiquement.
+ * Une ligne d'en-tête est détectée et ignorée automatiquement. Le statut est
+ * mis en correspondance (insensible accents/casse) avec les catégories de
+ * l'événement ; à défaut de correspondance, retombe sur la première catégorie.
  */
-export function parseParticipantsCsv(text: string): CsvParseResult {
+export function parseParticipantsCsv(text: string, categories: ParticipantStatus[]): CsvParseResult {
   const rows: ParsedParticipantRow[] = []
   const errors: string[] = []
+  const statusLookup = new Map(categories.map((status) => [normalize(status), status]))
+  const defaultStatus = categories[0] ?? 'Participant'
 
   const lines = text
     .split(/\r?\n/)
@@ -55,7 +52,7 @@ export function parseParticipantsCsv(text: string): CsvParseResult {
     rows.push({
       first_name: firstName,
       last_name: lastName,
-      status: statusRaw ? resolveStatus(statusRaw) : 'Participant',
+      status: (statusRaw && statusLookup.get(normalize(statusRaw))) || defaultStatus,
       tshirt_size: sizeRaw ? sizeRaw : null,
     })
   })

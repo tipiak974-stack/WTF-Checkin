@@ -1,8 +1,17 @@
 import { useRef, useState } from 'react'
 import { parseParticipantsCsv, type ParsedParticipantRow } from '../lib/csv'
 import { importParticipants } from '../lib/participants'
+import type { ParticipantStatus } from '../types'
 
-export function CsvImport({ eventId, onImported }: { eventId: string; onImported: () => void }) {
+export function CsvImport({
+  eventId,
+  categories,
+  onImported,
+}: {
+  eventId: string
+  categories: ParticipantStatus[]
+  onImported: () => void
+}) {
   const [text, setText] = useState('')
   const [preview, setPreview] = useState<{ rows: ParsedParticipantRow[]; errors: string[] } | null>(null)
   const [importing, setImporting] = useState(false)
@@ -10,7 +19,7 @@ export function CsvImport({ eventId, onImported }: { eventId: string; onImported
 
   function handleParse(rawText: string) {
     setText(rawText)
-    setPreview(rawText.trim() ? parseParticipantsCsv(rawText) : null)
+    setPreview(rawText.trim() ? parseParticipantsCsv(rawText, categories) : null)
   }
 
   async function handleFileUpload(file: File) {
@@ -32,17 +41,19 @@ export function CsvImport({ eventId, onImported }: { eventId: string; onImported
     }
   }
 
+  const example = categories[0] ?? 'Participant'
+
   return (
     <div className="rounded-2xl border-2 border-line bg-surface p-4">
       <h2 className="font-sans text-xl text-brand-600">Import CSV</h2>
-      <p className="mt-1 text-sm text-ink-600">Colonnes : prénom;nom;statut;taille (statut/taille optionnels)</p>
+      <p className="mt-1 text-sm text-ink-600">Colonnes : prénom;nom;catégorie;taille (catégorie/taille optionnels)</p>
 
       <textarea
         value={text}
         onChange={(e) => handleParse(e.target.value)}
-        placeholder={'Jean;Dupont;VIP;M\nMarie;Martin;Participant;S'}
+        placeholder={`Jean;Dupont;${example};M\nMarie;Martin;${example};S`}
         rows={5}
-        className="mt-3 w-full rounded-xl border-2 border-line bg-paper px-3 py-2 text-sm font-mono text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none"
+        className="mt-3 w-full rounded-xl border-2 border-line bg-paper px-3 py-2 text-base font-mono text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none"
       />
 
       <div className="mt-2">
@@ -77,7 +88,7 @@ export function CsvImport({ eventId, onImported }: { eventId: string; onImported
       <button
         onClick={handleImport}
         disabled={!preview || preview.rows.length === 0 || importing}
-        className="mt-3 rounded-xl bg-brand-600 px-5 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+        className="mt-3 w-full rounded-xl bg-brand-600 px-5 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50 sm:w-auto"
       >
         {importing ? 'Import…' : 'Importer'}
       </button>
