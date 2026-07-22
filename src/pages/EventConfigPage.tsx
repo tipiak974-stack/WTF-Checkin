@@ -13,7 +13,6 @@ import { formatFullName } from '../lib/strings'
 import { CsvImport } from '../components/CsvImport'
 import { EventLogo } from '../components/EventLogo'
 import { ParticipantForm } from '../components/ParticipantForm'
-import { StatusBadge } from '../components/StatusBadge'
 import { SizeBadge } from '../components/SizeBadge'
 import type { EventRecord, Participant, TeamColor } from '../types'
 
@@ -161,6 +160,17 @@ export function EventConfigPage() {
       await updateParticipant(participantId, { team_color: value })
     } catch (err) {
       console.error('[EventConfigPage] Échec de sauvegarde de la couleur d\'équipe :', err)
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      refreshParticipants()
+    }
+  }
+
+  async function handleStatusChange(participantId: string, status: string) {
+    setParticipants((prev) => prev.map((p) => (p.id === participantId ? { ...p, status } : p)))
+    try {
+      await updateParticipant(participantId, { status })
+    } catch (err) {
+      console.error('[EventConfigPage] Échec de sauvegarde de la catégorie :', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
       refreshParticipants()
     }
@@ -396,7 +406,21 @@ export function EventConfigPage() {
                             {formatFullName(p.first_name, p.last_name)}
                           </p>
                         </div>
-                        <StatusBadge status={p.status} categories={event.categories_list} />
+                        <select
+                          value={p.status}
+                          onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                          aria-label="Catégorie"
+                          className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
+                        >
+                          {(event.categories_list.includes(p.status)
+                            ? event.categories_list
+                            : [p.status, ...event.categories_list]
+                          ).map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
                         <SizeBadge size={p.tshirt_size} />
                         <select
                           value={p.team_color ?? ''}

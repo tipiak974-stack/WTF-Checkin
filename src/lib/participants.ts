@@ -46,7 +46,7 @@ export async function addParticipant(eventId: string, input: NewParticipantInput
 
 export async function updateParticipant(
   participantId: string,
-  patch: { team_color: string | null },
+  patch: Partial<Pick<Participant, 'team_color' | 'status'>>,
 ): Promise<void> {
   const { error } = await supabase.from('participants').update(patch).eq('id', participantId)
   if (error) throw error
