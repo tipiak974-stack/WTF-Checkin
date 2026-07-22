@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import type { ParticipantStatus } from '../types'
+import { UNDEFINED_TEAM_COLOR_LABEL } from '../lib/teamColors'
+import type { ParticipantStatus, TeamColor } from '../types'
 
 export interface ParticipantFormValues {
   first_name: string
   last_name: string
   status: ParticipantStatus
   tshirt_size: string | null
+  team_color: string | null
 }
 
 const fieldClass =
@@ -13,11 +15,13 @@ const fieldClass =
 
 export function ParticipantForm({
   categories,
+  colors,
   onSubmit,
   submitLabel,
   submitting,
 }: {
   categories: ParticipantStatus[]
+  colors: TeamColor[]
   onSubmit: (values: ParticipantFormValues) => void | Promise<void>
   submitLabel: string
   submitting?: boolean
@@ -26,6 +30,7 @@ export function ParticipantForm({
   const [lastName, setLastName] = useState('')
   const [status, setStatus] = useState<ParticipantStatus>(categories[0] ?? 'Participant')
   const [size, setSize] = useState('')
+  const [teamColor, setTeamColor] = useState('')
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -36,12 +41,14 @@ export function ParticipantForm({
       last_name: lastName.trim(),
       status,
       tshirt_size: size.trim() ? size.trim() : null,
+      team_color: teamColor || null,
     })
 
     setFirstName('')
     setLastName('')
     setStatus(categories[0] ?? 'Participant')
     setSize('')
+    setTeamColor('')
   }
 
   return (
@@ -86,6 +93,18 @@ export function ParticipantForm({
         <option value="XL" />
         <option value="XXL" />
       </datalist>
+      <select
+        value={teamColor}
+        onChange={(e) => setTeamColor(e.target.value)}
+        className={`sm:w-auto ${fieldClass}`}
+      >
+        <option value="">{UNDEFINED_TEAM_COLOR_LABEL}</option>
+        {colors.map((c) => (
+          <option key={c.name} value={c.name}>
+            {c.name}
+          </option>
+        ))}
+      </select>
       <button
         type="submit"
         disabled={submitting}

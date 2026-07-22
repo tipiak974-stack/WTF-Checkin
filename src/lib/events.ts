@@ -1,6 +1,16 @@
 import { supabase } from './supabase'
 import type { EventRecord, EventWithCount } from '../types'
 
+/**
+ * `colors_list` peut manquer côté Supabase si la migration 0003 n'est pas encore appliquée
+ * (colonne absente → `undefined`, pas `null`, donc le défaut SQL ne suffit pas côté client).
+ * Normalisé ici, au point de lecture, pour que le reste de l'app puisse toujours faire
+ * `event.colors_list.map(...)` sans crasher.
+ */
+function normalizeEvent<T extends { colors_list?: EventRecord['colors_list'] }>(event: T): T {
+  return { ...event, colors_list: event.colors_list ?? [] }
+}
+
 export async function listEvents(): Promise<EventWithCount[]> {
   const { data, error } = await supabase
     .from('events')
@@ -11,7 +21,7 @@ export async function listEvents(): Promise<EventWithCount[]> {
   if (error) throw error
 
   return (data ?? []).map((event) => ({
-    ...event,
+    ...normalizeEvent(event),
     participant_count: event.participants?.[0]?.count ?? 0,
   }))
 }
@@ -24,18 +34,18 @@ export async function createEvent(): Promise<EventRecord> {
     .single()
 
   if (error) throw error
-  return data
+  return normalizeEvent(data)
 }
 
 export async function getEvent(eventId: string): Promise<EventRecord> {
   const { data, error } = await supabase.from('events').select('*').eq('id', eventId).single()
   if (error) throw error
-  return data
+  return normalizeEvent(data)
 }
 
 export async function updateEvent(
   eventId: string,
-  patch: Partial<Pick<EventRecord, 'name' | 'logo_url' | 'categories_list' | 'archived'>>,
+  patch: Partial<Pick<EventRecord, 'name' | 'logo_url' | 'categories_list' | 'colors_list' | 'archived'>>,
 ) {
   const { error } = await supabase.from('events').update(patch).eq('id', eventId)
   if (error) throw error

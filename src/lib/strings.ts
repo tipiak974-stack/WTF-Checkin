@@ -6,3 +6,8 @@ export function normalize(value: string): string {
     .toLowerCase()
     .trim()
 }
+
+/** Concatène prénom/nom en tolérant qu'un des deux soit vide (pas d'espace superflu). */
+export function formatFullName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim()
+}

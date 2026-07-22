@@ -1,20 +1,29 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getEvent, updateEvent, uploadEventLogo } from '../lib/events'
-import { addParticipant, deleteParticipant, listParticipants, subscribeToParticipants } from '../lib/participants'
+import {
+  addParticipant,
+  deleteParticipant,
+  listParticipants,
+  subscribeToParticipants,
+  updateParticipant,
+} from '../lib/participants'
+import { DEFAULT_TEAM_COLORS, UNDEFINED_TEAM_COLOR_LABEL } from '../lib/teamColors'
+import { formatFullName } from '../lib/strings'
 import { CsvImport } from '../components/CsvImport'
 import { EventLogo } from '../components/EventLogo'
 import { ParticipantForm } from '../components/ParticipantForm'
 import { StatusBadge } from '../components/StatusBadge'
 import { SizeBadge } from '../components/SizeBadge'
-import type { EventRecord, Participant } from '../types'
+import type { EventRecord, Participant, TeamColor } from '../types'
 
 const DashboardTab = lazy(() => import('../components/DashboardTab'))
 
-type Tab = 'config' | 'participants' | 'dashboard'
+type Tab = 'config' | 'colors' | 'participants' | 'dashboard'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'config', label: 'Config' },
+  { id: 'colors', label: 'Couleurs' },
   { id: 'participants', label: 'Participants' },
   { id: 'dashboard', label: 'Dashboard' },
 ]
@@ -29,6 +38,8 @@ export function EventConfigPage() {
   const [name, setName] = useState('')
   const [categories, setCategories] = useState<string[]>([])
   const [savingCategories, setSavingCategories] = useState(false)
+  const [colors, setColors] = useState<TeamColor[]>([])
+  const [savingColors, setSavingColors] = useState(false)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -47,6 +58,7 @@ export function EventConfigPage() {
         setEvent(eventData)
         setName(eventData.name)
         setCategories(eventData.categories_list)
+        setColors(eventData.colors_list.length > 0 ? eventData.colors_list : DEFAULT_TEAM_COLORS)
         setParticipants(participantsData)
       })
       .catch((err) => setError(err.message))
@@ -107,6 +119,48 @@ export function EventConfigPage() {
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setSavingCategories(false)
+    }
+  }
+
+  function handleColorNameChange(index: number, value: string) {
+    setColors((prev) => prev.map((c, i) => (i === index ? { ...c, name: value } : c)))
+  }
+
+  function handleColorHexChange(index: number, value: string) {
+    setColors((prev) => prev.map((c, i) => (i === index ? { ...c, hex: value } : c)))
+  }
+
+  function handleRemoveColor(index: number) {
+    setColors((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function handleAddColor() {
+    setColors((prev) => [...prev, { name: '', hex: '#2a78d6' }])
+  }
+
+  async function handleSaveColors() {
+    if (!eventId || !event) return
+    const cleaned = colors.map((c) => ({ name: c.name.trim(), hex: c.hex })).filter((c) => c.name)
+    setSavingColors(true)
+    try {
+      await updateEvent(eventId, { colors_list: cleaned })
+      setEvent({ ...event, colors_list: cleaned })
+      setColors(cleaned)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setSavingColors(false)
+    }
+  }
+
+  async function handleTeamColorChange(participantId: string, teamColor: string) {
+    const value = teamColor || null
+    setParticipants((prev) => prev.map((p) => (p.id === participantId ? { ...p, team_color: value } : p)))
+    try {
+      await updateParticipant(participantId, { team_color: value })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      refreshParticipants()
     }
   }
 
@@ -244,6 +298,56 @@ export function EventConfigPage() {
             </div>
           )}
 
+          {tab === 'colors' && (
+            <div className="rounded-2xl border-2 border-line bg-surface p-4">
+              <h2 className="font-sans text-xl text-brand-600">Couleurs d'équipe</h2>
+              <p className="mt-1 text-sm text-ink-600">
+                Utilisées pour identifier l'équipe d'un participant au pointage et dans le dashboard.
+              </p>
+              <div className="mt-3 space-y-2">
+                {colors.map((color, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="color"
+                      value={color.hex}
+                      onChange={(e) => handleColorHexChange(i, e.target.value)}
+                      aria-label="Couleur"
+                      className="h-11 w-11 shrink-0 cursor-pointer rounded-xl border-2 border-line bg-paper p-1"
+                    />
+                    <input
+                      value={color.name}
+                      onChange={(e) => handleColorNameChange(i, e.target.value)}
+                      placeholder="Nom de la couleur"
+                      className="min-w-0 flex-1 rounded-xl border-2 border-line bg-paper px-3 py-3 text-base text-ink-900 focus:border-brand-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => handleRemoveColor(i)}
+                      aria-label="Supprimer la couleur"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-line text-ink-600 hover:bg-brand-50 hover:text-brand-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={handleAddColor}
+                  className="rounded-xl border-2 border-line px-4 py-3 text-sm font-semibold text-ink-900 hover:bg-paper"
+                >
+                  + Ajouter une couleur
+                </button>
+                <button
+                  onClick={handleSaveColors}
+                  disabled={savingColors}
+                  className="rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 sm:ml-auto"
+                >
+                  {savingColors ? 'Enregistrement…' : 'Enregistrer les couleurs'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {tab === 'participants' && (
             <div className="space-y-6">
               <CsvImport eventId={eventId} categories={event.categories_list} onImported={refreshParticipants} />
@@ -253,6 +357,7 @@ export function EventConfigPage() {
                 <div className="mt-3">
                   <ParticipantForm
                     categories={event.categories_list}
+                    colors={event.colors_list}
                     submitLabel="Ajouter"
                     submitting={adding}
                     onSubmit={async (values) => {
@@ -285,11 +390,24 @@ export function EventConfigPage() {
                       <li key={p.id} className="flex flex-wrap items-center gap-3 p-4">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-ink-900">
-                            {p.first_name} {p.last_name}
+                            {formatFullName(p.first_name, p.last_name)}
                           </p>
                         </div>
                         <StatusBadge status={p.status} categories={event.categories_list} />
                         <SizeBadge size={p.tshirt_size} />
+                        <select
+                          value={p.team_color ?? ''}
+                          onChange={(e) => handleTeamColorChange(p.id, e.target.value)}
+                          aria-label="Couleur d'équipe"
+                          className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
+                        >
+                          <option value="">{UNDEFINED_TEAM_COLOR_LABEL}</option>
+                          {event.colors_list.map((c) => (
+                            <option key={c.name} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
                         <button
                           onClick={() => handleDelete(p.id)}
                           className="rounded-lg px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"

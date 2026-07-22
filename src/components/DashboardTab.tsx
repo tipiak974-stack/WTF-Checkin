@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
-import { countByStatus, buildArrivalCurve } from '../lib/stats'
+import { countByStatus, countByTeamColor, buildArrivalCurve } from '../lib/stats'
 import { participantsToCsv, downloadCsv } from '../lib/csvExport'
-import { normalize } from '../lib/strings'
+import { formatFullName, normalize } from '../lib/strings'
 import { getCategoryColor } from '../lib/statusColors'
 import { StatusBadge } from './StatusBadge'
 import { SizeBadge } from './SizeBadge'
+import { TeamColorBadge } from './TeamColorBadge'
 import { StatTile } from './StatTile'
 import { ArrivalLineChart } from './ArrivalLineChart'
 import { GuestDonutChart } from './GuestDonutChart'
@@ -15,8 +16,10 @@ export default function DashboardTab({ event, participants }: { event: EventReco
   const [exportingPdf, setExportingPdf] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
   const categories = event.categories_list
+  const colors = event.colors_list
 
   const statusCounts = useMemo(() => countByStatus(participants, categories), [participants, categories])
+  const teamColorCounts = useMemo(() => countByTeamColor(participants, colors), [participants, colors])
   const arrivalCurve = useMemo(() => buildArrivalCurve(participants), [participants])
   const checkedInCount = participants.filter((p) => p.checked_in).length
   const totalCount = participants.length
@@ -25,7 +28,7 @@ export default function DashboardTab({ event, participants }: { event: EventReco
   const results = useMemo(() => {
     const q = normalize(query)
     if (q.length < 3) return []
-    return participants.filter((p) => normalize(p.last_name).includes(q))
+    return participants.filter((p) => normalize(p.first_name).includes(q) || normalize(p.last_name).includes(q))
   }, [participants, query])
 
   function handleExportCsv() {
@@ -67,10 +70,11 @@ export default function DashboardTab({ event, participants }: { event: EventReco
                 <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-xl border-2 border-line p-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-ink-900">
-                      {p.first_name} {p.last_name}
+                      {formatFullName(p.first_name, p.last_name)}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <StatusBadge status={p.status} categories={categories} />
+                      <TeamColorBadge teamColor={p.team_color} colors={colors} />
                       <SizeBadge size={p.tshirt_size} />
                     </div>
                   </div>
@@ -124,6 +128,35 @@ export default function DashboardTab({ event, participants }: { event: EventReco
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="rounded-2xl border-2 border-line bg-surface p-4">
+          <h2 className="font-sans text-xl text-brand-600">Répartition par couleur d'équipe</h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[360px] text-sm">
+              <thead>
+                <tr className="text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
+                  <th className="pb-2">Couleur</th>
+                  <th className="pb-2 text-right">Inscrits</th>
+                  <th className="pb-2 text-right">Présents</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {teamColorCounts.map((c) => (
+                  <tr key={c.name}>
+                    <td className="py-2">
+                      <span className="flex items-center gap-2 font-semibold text-ink-900">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: c.hex }} />
+                        {c.name}
+                      </span>
+                    </td>
+                    <td className="py-2 text-right font-semibold text-ink-900">{c.registered}</td>
+                    <td className="py-2 text-right font-bold text-ink-900">{c.present}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="rounded-2xl border-2 border-line bg-surface p-4">

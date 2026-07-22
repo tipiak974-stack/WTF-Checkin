@@ -18,6 +18,7 @@ export interface NewParticipantInput {
   last_name: string
   status: ParticipantStatus
   tshirt_size: string | null
+  team_color?: string | null
   is_guest?: boolean
   checked_in?: boolean
 }
@@ -31,6 +32,7 @@ export async function addParticipant(eventId: string, input: NewParticipantInput
       last_name: input.last_name,
       status: input.status,
       tshirt_size: input.tshirt_size,
+      team_color: input.team_color ?? null,
       is_guest: input.is_guest ?? false,
       checked_in: input.checked_in ?? false,
       checked_in_at: input.checked_in ? new Date().toISOString() : null,
@@ -40,6 +42,14 @@ export async function addParticipant(eventId: string, input: NewParticipantInput
 
   if (error) throw error
   return data
+}
+
+export async function updateParticipant(
+  participantId: string,
+  patch: { team_color: string | null },
+): Promise<void> {
+  const { error } = await supabase.from('participants').update(patch).eq('id', participantId)
+  if (error) throw error
 }
 
 export async function importParticipants(eventId: string, rows: ParsedParticipantRow[]): Promise<void> {

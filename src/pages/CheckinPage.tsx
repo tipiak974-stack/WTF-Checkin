@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getEvent } from '../lib/events'
 import { addParticipant, listParticipants, setCheckedIn, subscribeToParticipants } from '../lib/participants'
-import { normalize } from '../lib/strings'
+import { formatFullName, normalize } from '../lib/strings'
 import { EventLogo } from '../components/EventLogo'
 import { ParticipantForm } from '../components/ParticipantForm'
 import { StatusBadge } from '../components/StatusBadge'
 import { SizeBadge } from '../components/SizeBadge'
+import { TeamColorBadge } from '../components/TeamColorBadge'
 import type { EventRecord, Participant } from '../types'
 
 const CONFLICT_MESSAGES: Record<string, string> = {
@@ -46,7 +47,7 @@ export function CheckinPage() {
   const results = useMemo(() => {
     const q = normalize(query)
     if (q.length < 3) return []
-    return participants.filter((p) => normalize(p.last_name).includes(q))
+    return participants.filter((p) => normalize(p.first_name).includes(q) || normalize(p.last_name).includes(q))
   }, [participants, query])
 
   const checkedInCount = participants.filter((p) => p.checked_in).length
@@ -157,10 +158,11 @@ export function CheckinPage() {
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-semibold text-ink-900">
-                    {p.first_name} {p.last_name}
+                    {formatFullName(p.first_name, p.last_name)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <StatusBadge status={p.status} categories={event.categories_list} />
+                    <TeamColorBadge teamColor={p.team_color} colors={event.colors_list} />
                     <SizeBadge size={p.tshirt_size} />
                   </div>
                 </div>
@@ -209,6 +211,7 @@ export function CheckinPage() {
             <div className="mt-3">
               <ParticipantForm
                 categories={event.categories_list}
+                colors={event.colors_list}
                 submitLabel="Ajouter et marquer présent"
                 submitting={addingGuest}
                 onSubmit={async (values) => {
@@ -238,7 +241,8 @@ export function CheckinPage() {
           <div className="w-full max-w-sm rounded-2xl bg-surface p-4">
             <h2 className="font-sans text-xl text-brand-600">Annuler le check-in ?</h2>
             <p className="mt-2 text-sm text-ink-700">
-              Annuler le check-in pour <strong>{confirmUncheck.first_name} {confirmUncheck.last_name}</strong> ?
+              Annuler le check-in pour{' '}
+              <strong>{formatFullName(confirmUncheck.first_name, confirmUncheck.last_name)}</strong> ?
             </p>
             <div className="mt-4 flex gap-2">
               <button
