@@ -147,6 +147,7 @@ export function EventConfigPage() {
       setEvent({ ...event, colors_list: cleaned })
       setColors(cleaned)
     } catch (err) {
+      console.error('[EventConfigPage] Échec de sauvegarde des couleurs :', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setSavingColors(false)
@@ -159,6 +160,7 @@ export function EventConfigPage() {
     try {
       await updateParticipant(participantId, { team_color: value })
     } catch (err) {
+      console.error('[EventConfigPage] Échec de sauvegarde de la couleur d\'équipe :', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
       refreshParticipants()
     }
@@ -368,6 +370,7 @@ export function EventConfigPage() {
                           [...prev, participant].sort((a, b) => a.last_name.localeCompare(b.last_name)),
                         )
                       } catch (err) {
+                        console.error('[EventConfigPage] Échec de l\'ajout participant :', err)
                         setError(err instanceof Error ? err.message : 'Erreur inconnue')
                       } finally {
                         setAdding(false)

@@ -225,6 +225,7 @@ export function CheckinPage() {
                     setParticipants((prev) => [...prev, guest])
                     setShowGuestForm(false)
                   } catch (err) {
+                    console.error('[CheckinPage] Échec de l\'ajout invité :', err)
                     setError(err instanceof Error ? err.message : 'Erreur inconnue')
                   } finally {
                     setAddingGuest(false)
