@@ -8,7 +8,7 @@ import {
   subscribeToParticipants,
   updateParticipant,
 } from '../lib/participants'
-import { DEFAULT_TEAM_COLORS, UNDEFINED_TEAM_COLOR_LABEL } from '../lib/teamColors'
+import { UNDEFINED_TEAM_COLOR_LABEL } from '../lib/teamColors'
 import { formatFullName } from '../lib/strings'
 import { CsvImport } from '../components/CsvImport'
 import { EventLogo } from '../components/EventLogo'
@@ -58,7 +58,7 @@ export function EventConfigPage() {
         setEvent(eventData)
         setName(eventData.name)
         setCategories(eventData.categories_list)
-        setColors(eventData.colors_list.length > 0 ? eventData.colors_list : DEFAULT_TEAM_COLORS)
+        setColors(eventData.colors_list)
         setParticipants(participantsData)
       })
       .catch((err) => setError(err.message))

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { DEFAULT_TEAM_COLORS } from './teamColors'
 import type { EventRecord, EventWithCount } from '../types'
 
 /**
@@ -9,6 +10,24 @@ import type { EventRecord, EventWithCount } from '../types'
  */
 function normalizeEvent<T extends { colors_list?: EventRecord['colors_list'] }>(event: T): T {
   return { ...event, colors_list: event.colors_list ?? [] }
+}
+
+/**
+ * Persiste le preset dès la première lecture d'un événement sans couleurs, plutôt que de
+ * laisser l'onglet Couleurs afficher un preset purement local tant que l'utilisateur n'a pas
+ * cliqué sur Enregistrer — sinon les autres dropdowns (tableau Participants, modale "+1"), qui
+ * lisent `event.colors_list`, restent vides alors que l'onglet a l'air déjà configuré.
+ */
+async function ensureColorsPersisted(eventId: string, event: EventRecord): Promise<EventRecord> {
+  if (event.colors_list.length > 0) return event
+  const withDefaults = { ...event, colors_list: DEFAULT_TEAM_COLORS }
+  try {
+    await updateEvent(eventId, { colors_list: DEFAULT_TEAM_COLORS })
+  } catch {
+    // Migration pas encore appliquée ou écriture impossible : preset affiché localement,
+    // re-tenté à la prochaine ouverture.
+  }
+  return withDefaults
 }
 
 export async function listEvents(): Promise<EventWithCount[]> {
@@ -40,7 +59,7 @@ export async function createEvent(): Promise<EventRecord> {
 export async function getEvent(eventId: string): Promise<EventRecord> {
   const { data, error } = await supabase.from('events').select('*').eq('id', eventId).single()
   if (error) throw error
-  return normalizeEvent(data)
+  return ensureColorsPersisted(eventId, normalizeEvent(data))
 }
 
 export async function updateEvent(
