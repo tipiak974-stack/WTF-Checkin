@@ -375,7 +375,7 @@ export function EventConfigPage() {
                     onSubmit={async (values) => {
                       setAdding(true)
                       try {
-                        const participant = await addParticipant(eventId, values)
+                        const participant = await addParticipant(eventId, { ...values, added_manually: true })
                         setParticipants((prev) =>
                           [...prev, participant].sort((a, b) => a.last_name.localeCompare(b.last_name)),
                         )
@@ -399,50 +399,98 @@ export function EventConfigPage() {
                   <p className="p-4 text-sm text-ink-600">Aucun participant pour l'instant.</p>
                 ) : (
                   <ul className="divide-y-2 divide-line">
-                    {participants.map((p) => (
-                      <li key={p.id} className="flex flex-wrap items-center gap-3 p-4">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-ink-900">
-                            {formatFullName(p.first_name, p.last_name)}
-                          </p>
-                        </div>
-                        <select
-                          value={p.status}
-                          onChange={(e) => handleStatusChange(p.id, e.target.value)}
-                          aria-label="Catégorie"
-                          className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
-                        >
-                          {(event.categories_list.includes(p.status)
-                            ? event.categories_list
-                            : [p.status, ...event.categories_list]
-                          ).map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                        <SizeBadge size={p.tshirt_size} />
-                        <select
-                          value={p.team_color ?? ''}
-                          onChange={(e) => handleTeamColorChange(p.id, e.target.value)}
-                          aria-label="Couleur d'équipe"
-                          className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
-                        >
-                          <option value="">{UNDEFINED_TEAM_COLOR_LABEL}</option>
-                          {event.colors_list.map((c) => (
-                            <option key={c.name} value={c.name}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => handleDelete(p.id)}
-                          className="rounded-lg px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
-                        >
-                          Supprimer
-                        </button>
-                      </li>
-                    ))}
+                    {participants.map((p) => {
+                      const categoryOptions = event.categories_list.includes(p.status)
+                        ? event.categories_list
+                        : [p.status, ...event.categories_list]
+                      return (
+                        <li key={p.id} className="p-4">
+                          {/* Carte empilée en dessous de 768px */}
+                          <div className="space-y-3 md:hidden">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-900">
+                                {formatFullName(p.first_name, p.last_name)}
+                              </p>
+                              <SizeBadge size={p.tshirt_size} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <select
+                                value={p.status}
+                                onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                                aria-label="Catégorie"
+                                className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
+                              >
+                                {categoryOptions.map((status) => (
+                                  <option key={status} value={status}>
+                                    {status}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={p.team_color ?? ''}
+                                onChange={(e) => handleTeamColorChange(p.id, e.target.value)}
+                                aria-label="Couleur d'équipe"
+                                className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
+                              >
+                                <option value="">{UNDEFINED_TEAM_COLOR_LABEL}</option>
+                                {event.colors_list.map((c) => (
+                                  <option key={c.name} value={c.name}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <button
+                              onClick={() => handleDelete(p.id)}
+                              className="-ml-3 rounded-lg px-3 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50"
+                            >
+                              Supprimer
+                            </button>
+                          </div>
+
+                          {/* Ligne horizontale à partir de 768px */}
+                          <div className="hidden md:flex md:flex-wrap md:items-center md:gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-ink-900">
+                                {formatFullName(p.first_name, p.last_name)}
+                              </p>
+                            </div>
+                            <select
+                              value={p.status}
+                              onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                              aria-label="Catégorie"
+                              className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
+                            >
+                              {categoryOptions.map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                            </select>
+                            <SizeBadge size={p.tshirt_size} />
+                            <select
+                              value={p.team_color ?? ''}
+                              onChange={(e) => handleTeamColorChange(p.id, e.target.value)}
+                              aria-label="Couleur d'équipe"
+                              className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none"
+                            >
+                              <option value="">{UNDEFINED_TEAM_COLOR_LABEL}</option>
+                              {event.colors_list.map((c) => (
+                                <option key={c.name} value={c.name}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => handleDelete(p.id)}
+                              className="rounded-lg px-3 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
+                            >
+                              Supprimer
+                            </button>
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </div>

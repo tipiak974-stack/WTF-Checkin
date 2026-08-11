@@ -63,6 +63,8 @@ function addCanvasAcrossPages(doc: jsPDF, canvas: HTMLCanvasElement, startY: num
 
 function drawSummary(doc: jsPDF, participants: Participant[], y: number): void {
   const arrivalCurve = buildArrivalCurve(participants)
+  const addedOnSite = participants.filter((p) => p.added_manually).length
+  const imported = participants.length - addedOnSite
 
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
@@ -73,6 +75,9 @@ function drawSummary(doc: jsPDF, participants: Participant[], y: number): void {
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(INK.r, INK.g, INK.b)
+
+  doc.text(`Importés: ${imported} — Ajoutés sur place: ${addedOnSite}`, MARGIN_X, y)
+  y += 6
 
   if (arrivalCurve.length === 0) {
     doc.text('Aucune arrivée enregistrée.', MARGIN_X, y)

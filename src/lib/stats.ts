@@ -81,3 +81,34 @@ export function buildArrivalCurve(participants: Participant[]): ArrivalPoint[] {
 
   return points
 }
+
+export interface ArrivalBucket {
+  bucketStart: Date
+  count: number
+}
+
+/** Nombre de check-in par tranche de 15 minutes, borné entre le premier et le dernier pointage réel. */
+export function buildArrivalHistogram(participants: Participant[]): ArrivalBucket[] {
+  const timestamps = participants
+    .filter((p) => p.checked_in && p.checked_in_at)
+    .map((p) => new Date(p.checked_in_at as string).getTime())
+    .sort((a, b) => a - b)
+
+  if (timestamps.length === 0) return []
+
+  const firstBucket = Math.floor(timestamps[0] / BUCKET_MS) * BUCKET_MS
+  const lastBucket = Math.floor(timestamps[timestamps.length - 1] / BUCKET_MS) * BUCKET_MS
+
+  const counts = new Map<number, number>()
+  for (const ts of timestamps) {
+    const bucket = Math.floor(ts / BUCKET_MS) * BUCKET_MS
+    counts.set(bucket, (counts.get(bucket) ?? 0) + 1)
+  }
+
+  const buckets: ArrivalBucket[] = []
+  for (let bucket = firstBucket; bucket <= lastBucket; bucket += BUCKET_MS) {
+    buckets.push({ bucketStart: new Date(bucket), count: counts.get(bucket) ?? 0 })
+  }
+
+  return buckets
+}

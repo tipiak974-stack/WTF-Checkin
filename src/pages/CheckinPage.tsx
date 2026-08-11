@@ -221,6 +221,7 @@ export function CheckinPage() {
                       ...values,
                       is_guest: true,
                       checked_in: true,
+                      added_manually: true,
                     })
                     setParticipants((prev) => [...prev, guest])
                     setShowGuestForm(false)

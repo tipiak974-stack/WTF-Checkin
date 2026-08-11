@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { countByStatus, countByTeamColor, buildArrivalCurve } from '../lib/stats'
+import { countByStatus, countByTeamColor, buildArrivalCurve, buildArrivalHistogram } from '../lib/stats'
 import { participantsToCsv, downloadCsv } from '../lib/csvExport'
 import { formatFullName, normalize } from '../lib/strings'
 import { getCategoryColor } from '../lib/statusColors'
@@ -8,6 +8,7 @@ import { SizeBadge } from './SizeBadge'
 import { TeamColorBadge } from './TeamColorBadge'
 import { StatTile } from './StatTile'
 import { ArrivalLineChart } from './ArrivalLineChart'
+import { ArrivalBarChart } from './ArrivalBarChart'
 import { GuestDonutChart } from './GuestDonutChart'
 import type { EventRecord, Participant } from '../types'
 
@@ -21,6 +22,7 @@ export default function DashboardTab({ event, participants }: { event: EventReco
   const statusCounts = useMemo(() => countByStatus(participants, categories), [participants, categories])
   const teamColorCounts = useMemo(() => countByTeamColor(participants, colors), [participants, colors])
   const arrivalCurve = useMemo(() => buildArrivalCurve(participants), [participants])
+  const arrivalHistogram = useMemo(() => buildArrivalHistogram(participants), [participants])
   const checkedInCount = participants.filter((p) => p.checked_in).length
   const totalCount = participants.length
   const rate = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0
@@ -71,6 +73,11 @@ export default function DashboardTab({ event, participants }: { event: EventReco
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-ink-900">
                       {formatFullName(p.first_name, p.last_name)}
+                      {p.added_manually && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-brand-700">
+                          +1
+                        </span>
+                      )}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <StatusBadge status={p.status} categories={categories} />
@@ -163,6 +170,13 @@ export default function DashboardTab({ event, participants }: { event: EventReco
           <h2 className="font-sans text-xl text-brand-600">Suivi des arrivées</h2>
           <div className="mt-4">
             <ArrivalLineChart points={arrivalCurve} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border-2 border-line bg-surface p-4">
+          <h2 className="font-sans text-xl text-brand-600">Pics horaires</h2>
+          <div className="mt-4">
+            <ArrivalBarChart buckets={arrivalHistogram} />
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ export interface NewParticipantInput {
   team_color?: string | null
   is_guest?: boolean
   checked_in?: boolean
+  added_manually?: boolean
 }
 
 export async function addParticipant(eventId: string, input: NewParticipantInput): Promise<Participant> {
@@ -36,6 +37,7 @@ export async function addParticipant(eventId: string, input: NewParticipantInput
       is_guest: input.is_guest ?? false,
       checked_in: input.checked_in ?? false,
       checked_in_at: input.checked_in ? new Date().toISOString() : null,
+      added_manually: input.added_manually ?? false,
     })
     .select()
     .single()

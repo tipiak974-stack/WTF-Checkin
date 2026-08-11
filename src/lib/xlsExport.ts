@@ -8,6 +8,7 @@ export function downloadParticipantsXls(filename: string, participants: Particip
     Catégorie: p.status,
     Taille: p.tshirt_size ?? '',
     "Couleur d'équipe": p.team_color ?? '',
+    'Ajouté manuellement': p.added_manually ? 'Oui' : 'Non',
     Présent: p.checked_in ? 'Oui' : 'Non',
     'Heure de check-in': p.checked_in_at
       ? new Date(p.checked_in_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })

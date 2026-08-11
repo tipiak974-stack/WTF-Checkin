@@ -30,5 +30,6 @@ export interface Participant {
   is_guest: boolean
   checked_in: boolean
   checked_in_at: string | null
+  added_manually: boolean
   created_at: string
 }
