@@ -8,6 +8,7 @@ import {
   type ColumnRole,
   type RawRow,
 } from '../lib/csv'
+import { errorMessage } from '../lib/errors'
 import { importParticipants } from '../lib/participants'
 import type { ParticipantStatus } from '../types'
 
@@ -106,7 +107,7 @@ export function CsvImport({
       resetAll()
       onImported()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     } finally {
       setImporting(false)
     }
