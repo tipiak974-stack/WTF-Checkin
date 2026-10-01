@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { errorMessage } from '../lib/errors'
 import { archiveEvent, createEvent, deleteEvent, listEvents } from '../lib/events'
 import { EventLogo } from '../components/EventLogo'
 import type { EventWithCount } from '../types'
@@ -39,7 +40,7 @@ export function HomePage() {
   useEffect(() => {
     listEvents()
       .then(setEvents)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(errorMessage(err)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -50,7 +51,7 @@ export function HomePage() {
       const event = await createEvent()
       navigate(`/events/${event.id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
       setCreating(false)
     }
   }
@@ -60,7 +61,7 @@ export function HomePage() {
       await archiveEvent(id)
       setEvents((prev) => prev.filter((e) => e.id !== id))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     }
   }
 
@@ -69,7 +70,7 @@ export function HomePage() {
       await deleteEvent(id)
       setEvents((prev) => prev.filter((e) => e.id !== id))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     } finally {
       setDeleteConfirmFor(null)
     }

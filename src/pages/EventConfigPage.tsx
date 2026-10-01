@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { errorMessage } from '../lib/errors'
 import { getEvent, updateEvent, uploadEventLogo } from '../lib/events'
 import {
   addParticipant,
@@ -47,7 +48,7 @@ export function EventConfigPage() {
 
   const refreshParticipants = useCallback(() => {
     if (!eventId) return
-    listParticipants(eventId).then(setParticipants).catch((err) => setError(err.message))
+    listParticipants(eventId).then(setParticipants).catch((err) => setError(errorMessage(err)))
   }, [eventId])
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export function EventConfigPage() {
         setColors(eventData.colors_list)
         setParticipants(participantsData)
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(errorMessage(err)))
       .finally(() => setLoading(false))
   }, [eventId])
 
@@ -75,7 +76,7 @@ export function EventConfigPage() {
       await updateEvent(eventId, { name: name.trim() })
       setEvent({ ...event, name: name.trim() })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     }
   }
 
@@ -87,7 +88,7 @@ export function EventConfigPage() {
       await updateEvent(eventId, { logo_url: logoUrl })
       setEvent({ ...event, logo_url: logoUrl })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     } finally {
       setUploadingLogo(false)
     }
@@ -115,7 +116,7 @@ export function EventConfigPage() {
       setEvent({ ...event, categories_list: cleaned })
       setCategories(cleaned)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     } finally {
       setSavingCategories(false)
     }
@@ -147,7 +148,7 @@ export function EventConfigPage() {
       setColors(cleaned)
     } catch (err) {
       console.error('[EventConfigPage] Échec de sauvegarde des couleurs :', err)
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     } finally {
       setSavingColors(false)
     }
@@ -160,7 +161,7 @@ export function EventConfigPage() {
       await updateParticipant(participantId, { team_color: value })
     } catch (err) {
       console.error('[EventConfigPage] Échec de sauvegarde de la couleur d\'équipe :', err)
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
       refreshParticipants()
     }
   }
@@ -171,7 +172,7 @@ export function EventConfigPage() {
       await updateParticipant(participantId, { status })
     } catch (err) {
       console.error('[EventConfigPage] Échec de sauvegarde de la catégorie :', err)
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
       refreshParticipants()
     }
   }
@@ -181,7 +182,7 @@ export function EventConfigPage() {
       await deleteParticipant(participantId)
       setParticipants((prev) => prev.filter((p) => p.id !== participantId))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+      setError(errorMessage(err))
     }
   }
 
@@ -381,7 +382,7 @@ export function EventConfigPage() {
                         )
                       } catch (err) {
                         console.error('[EventConfigPage] Échec de l\'ajout participant :', err)
-                        setError(err instanceof Error ? err.message : 'Erreur inconnue')
+                        setError(errorMessage(err))
                       } finally {
                         setAdding(false)
                       }

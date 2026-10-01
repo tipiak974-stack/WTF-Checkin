@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { errorMessage } from '../lib/errors'
 import { getEvent } from '../lib/events'
 import { addParticipant, listParticipants, setCheckedIn, subscribeToParticipants } from '../lib/participants'
 import { formatFullName, normalize } from '../lib/strings'
@@ -36,7 +37,7 @@ export function CheckinPage() {
         setEvent(eventData)
         setParticipants(participantsData)
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(errorMessage(err)))
       .finally(() => setLoading(false))
 
     return subscribeToParticipants(eventId, () => {
@@ -59,7 +60,7 @@ export function CheckinPage() {
       await setCheckedIn(participant.id, next)
     } catch (err) {
       setParticipants((prev) => prev.map((p) => (p.id === participant.id ? { ...p, checked_in: !next } : p)))
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      const message = errorMessage(err)
       setError(CONFLICT_MESSAGES[message] ?? message)
       if (message in CONFLICT_MESSAGES) {
         listParticipants(eventId!).then(setParticipants).catch(() => {})
@@ -227,7 +228,7 @@ export function CheckinPage() {
                     setShowGuestForm(false)
                   } catch (err) {
                     console.error('[CheckinPage] Échec de l\'ajout invité :', err)
-                    setError(err instanceof Error ? err.message : 'Erreur inconnue')
+                    setError(errorMessage(err))
                   } finally {
                     setAddingGuest(false)
                   }
